@@ -1,0 +1,179 @@
+
+
+Latency**********
+Hadoop/Map-reduce:
+Hadoop is widely used large scale batch processing framework. Open source impl of Google.
+ - it has simple API
+ - Fault tolerance
+it has more network communication 
+
+Why Spark:
+
+Keep fault tolerance but also reduce network latency using functional transformation
+
+Reading and writing on disk is 100 times slower than in-memory 
+Reading and writing on network is 1Million time slower than in-memory
+
+ - retain fault tolerance 
+ - different strategy for handling latency ( example - Transformations/actions - lazy/Eager - limit network communication using programming model
+
+Idea: Keep data immutable and in memory . All operations on data is just functional transformations.. like regular scala collections.
+fault tolerance achieve by replaying functional transformations over original data set.
+
+
+Hence Spark is 100 more faster than Hadoop/MapReduce
+
+Combinators on Scala/RDD*********************
+map ,flatMap ,filter ,reduce ,fold and agregate
+
+WordCount:
+val rdd = spark.textFile("hdfs://...")
+val count = rdd.flaMap( line => line.spilt(" "))
+			.map(word => (word,1))
+			.reduceByKey(_+_)
+** Create RDDs
+two main ways - from existing RDD and from SparkContex(SparkSession in spark v2.0)
+
+Parallelize will convert local scala collection to RDD
+
+RDDs Transformations and Actions*************
+From Scala:
+	Transforers returns new collections  
+		exmaple: Map, flatMap,filter,groupBy
+	Accessors:returns a single value as result ( not collections)
+		example: reduce,fold,agrregate
+From Spark:
+	Transformations: 
+
+Transformations:
+	Returns new RDD ( lazy , results not immediately computed )
+	IMP: it limit network communication using programming model
+	exmaple: map, flatMap,Filter,Distinct(), intersection(),subtraction(), union,cartasian
+Actions - 
+	compute result either return and write on disk
+	Eager ( resutls immidiate )
+	exmaple: Collect, Count,take, Reduce,foreach, takeSample,takeOrderd,saveAsTextFile..etc
+	
+** check logs contain error on dec-2016 from data set where each element of dataset is one long entry
+	val count  = logs.filter( lg  => lg.contains("2016-12") && lg.contains("error").count
+	
+*** Why Spark is good for Data science 
+- many data science program includes iterations. 
+ - In hadoop/map reduce  - read , map-redece and write disck and again iteration 2.. read.. mapreduce and write disck.. and iteration3..vice versa
+ - in spark - lazy loading.. in memeory computations.. no compute until action for multiple iterations..
+ its better to write iterative programs to be write on spark.
+	Example: Logistic Regression is iterative algorithm typically used in classification model.
+	
+**** Cache() and Persistence()*****
+Cache - shorthand for using default storage level, which memory only as regular java objects
+persist - can be customized by passing sotage level you would like as parameter to persist exp: Disk_only storage level...etc. Default persist is same as cache.
+
+Cluster Topology Matter***********
+
+Spark jobs are executed as master/driver(spark context) and many worker nodes (executor).
+How master communicate to worker?? - thru Cluster manager (schduling,book keeping.. exmaple YARN/Mesos )
+***steps that represent the execution of a Spark program, 
+the driver program runs the Spark application, which creates a SparkContext upon start-up. 
+Then the SparkContext connects to a cluster manager, for example, like I said, the most Popular are Mesos/YARN which then allocates all the resources everywhere. 
+After that Spark requires executors on nodes in the clusters. 
+Now that you have a few nodes and you have this clusterizer running, then you establish executors everywhere. 
+And these executors are the processes that run computation and store data for your application. 
+Next, your driver program then sends your application code to the executor. 
+So the driver program is actually sending code around. Think about it, you're sending a function around to the individual nodes here. 
+
+** reduction operations **
+
+Fold Vs FoldLeft ( in spark both are not used on RDD's hence use instead agregate .. but in scala you can use)
+FoldLeft is not parallelize because it aplies binary operator to start a value and all elements of this collection or iterator going left to right.
+val xs=List(1,2,3,4)
+val res=xs.foldLeft("")((str:String, i: Int)=> str+i)  - returns "res: String = 1234"
+Note: Foldleft cant be parallel because it operate tow different types where as fold operate one type .
+
+Agreegate:
+- parallizable
+- can return different type
+
+def aggregate[B](z: ⇒ B)(seqop: (B, A) ⇒ B, combop: (B, B) ⇒ B): B
+
+Aggregates the results of applying an operator to subsequent elements.
+This is a more general form of fold and reduce. It has similar semantics, but does not require the result to be a supertype of the element type.
+
+*** Pair RDD*********************
+Pair RDD is create from existing RDD mostly for computations
+
+val rdd = sc.read("WiKiPages")
+val pairRDD = rdd.map(  page => (page.title,page.text))
+
+Transformations:
+groupByKey
+reduceByKey
+mapValues
+key
+join
+LeftOuterJoin/LeftInnerJoin
+
+Actions:
+CountByKey
+
+***
+val ages=List(1,10,30,20,10)
+val grouped = ages.groupBy{ age => if (age < 10 ) "child"  else (age > 18 ) "adult") else "senior" }
+
+groupByKey:
+case class Event( organizer:String,  budget: Int )
+val eventPairRdd= sc.parallelize().map( event +> event.organizer, event.budget)
+val groupedRDD = eventPairRDD.groupByKey()
+
+groupedRDD.collect().foreach(println)
+
+( marriage, CompactBuffer(10000))
+(Bdayparty , Compactbuffer(1000,2000,5000))
+
+ReduceByKey:
+groupedRdd.reduceByKey(_+_)
+( marriage, CompactBuffer(10000))
+(Bdayparty , Compactbuffer(8000))
+
+
+*** JOIN's are transformations**
+JOIN - intersections/innderjoin -  means - whos keys are present in both RDD'said
+	RDD1.join(RDD2)
+outerjoin--two types
+	- leftOuterJoin - keep the left RDD keys
+		RDD1.leftOuteJoin(RDD2)
+	- RightOuterJoin means - keep the Right RDD keys
+		RDD1.rightOuterJoin(RDD2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
